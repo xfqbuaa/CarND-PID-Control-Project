@@ -6,9 +6,17 @@ public:
   /*
   * Errors
   */
-  double p_error;
-  double i_error;
-  double d_error;
+  double p_error = 0.0;
+  double i_error = 0.0;
+  double d_error = 0.0;
+
+  double t_error = 0.0; 	// total average error
+  double best_error = 1.0e5; 	// best total average error 
+  int n_step = 0; 		// n for iteration 
+  
+  int n_thres = 100; 		// n limits to switch Kp, Ki, Kd
+  bool is_loop = true;		// flag to show whether the first loop in twiddle
+  int num_para = 0;     	// to switch from Kp, Kd and Ki
 
   /*
   * Coefficients
@@ -16,6 +24,10 @@ public:
   double Kp;
   double Ki;
   double Kd;
+
+  double dKp;
+  double dKi;
+  double dKd;
 
   /*
   * Constructor
@@ -41,6 +53,11 @@ public:
   * Calculate the total PID error.
   */
   double TotalError();
+
+  /*
+  * Twiddle.
+  */
+  void Twiddle();
 };
 
 #endif /* PID_H */
