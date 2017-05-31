@@ -17,23 +17,25 @@ void PID::Init(double Kp, double Ki, double Kd) {
   this->Ki = Ki;
   this->Kd = Kd;
   
-  Kp = Kp==0? 0.25:Kp;
-  Ki = Ki==0? 0.0004:Ki;
-  Kd = Kd==0? 4:Kd;
+  Kp = Kp==0? 0.1:Kp;
+  Ki = Ki==0? 0.1:Ki;
+  Kd = Kd==0? 0.1:Kd;
   
   dKp = Kp==0? 0.1:Kp/10.;
   dKi = Ki==0? 0.1:Ki/10.;
   dKd = Kd==0? 0.1:Kd/10.;
 }
 
-void PID::UpdateError(double cte) {
+void PID::UpdateError(double cte, double speed) {
   d_error = cte - p_error;
   p_error = cte;
   i_error += cte;
   n_step++;
-
-  t_error = cte*cte;
-
+  if (n_step > n_thres) {
+    //t_error += cte*cte;
+    //t_error += pow(speed-speed_limit, 2);
+    t_error += pow(speed_limit*cte/speed,2);
+  }
 }
 
 double PID::TotalError() {
@@ -48,12 +50,23 @@ double PID::TotalError() {
   return steering;
 }
 
+double PID::GetThrottle() {
+
+  Twiddle();
+
+  double throttle_position = 1-Kp*fabs(p_error) - Kd*fabs(d_error) - Ki*fabs(i_error);
+  throttle_position = throttle_position > 1? 1:throttle_position;
+  throttle_position = throttle_position <-1? -1:throttle_position;
+
+  return throttle_position;
+}
+
 void PID::Twiddle() {
   
   // twiddle Kp 
   if (fabs(dKp)+fabs(dKd)+fabs(dKi) > 1e-5 && n_step > n_thres) {
     // to get the optimized Kp
-    cout << "n:" << n_step << "/   Kp:" << Kp << "/   Kd:"<< Kd << "/   Ki:"<< Ki << "/   dKp:"<< dKp << "/   dKd:"<< dKd << "/   dKi:"<< dKi << "/   t_error:"<< t_error << "/   best_error:"<< best_error << "/   num_para:" << num_para << endl;
+    cout << "n:" << n_step << "/   Kp:" << Kp << "/   Kd:"<< Kd << "/   Ki:"<< Ki << "/   dKp:"<< dKp << "/   dKd:"<< dKd << "/   dKi:"<< dKi << "/   t_error:"<< t_error/n_step << "/   best_error:"<< best_error << "/   num_para:" << num_para << endl;
     
     if (n_step == n_thres) {
       Kp += dKp;
@@ -62,8 +75,8 @@ void PID::Twiddle() {
     }
     
     if(is_loop == true) {
-      if(t_error < best_error) {
-        best_error = t_error;
+      if((t_error/n_step) < best_error) {
+        best_error = t_error/n_step;
         if(num_para == 0) dKp *= 1.1;
         if(num_para == 1) dKd *= 1.1;
         if(num_para == 2) dKi *= 1.1;
@@ -80,8 +93,8 @@ void PID::Twiddle() {
         return;
       }
     }else {
-      if(t_error < best_error) {
-        best_error = t_error;
+      if((t_error/n_step) < best_error) {
+        best_error = t_error/n_step;
         if(num_para == 0) dKp *= 1.1;
         if(num_para == 1) dKd *= 1.1;
         if(num_para == 2) dKi *= 1.1;

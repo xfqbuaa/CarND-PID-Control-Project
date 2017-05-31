@@ -17,6 +17,7 @@ public:
   int n_thres = 100; 		// n limits to switch Kp, Ki, Kd
   bool is_loop = true;		// flag to show whether the first loop in twiddle
   int num_para = 0;     	// to switch from Kp, Kd and Ki
+  int speed_limit = 100;        // speed limit 
 
   /*
   * Coefficients
@@ -47,10 +48,10 @@ public:
   /*
   * Update the PID error variables given cross track error.
   */
-  void UpdateError(double cte);
+  void UpdateError(double cte, double speed);
 
   /*
-  * Calculate the total PID error.
+  * Calculate the total PID error and return steering angle.
   */
   double TotalError();
 
@@ -58,6 +59,10 @@ public:
   * Twiddle.
   */
   void Twiddle();
+ /*
+  * Calculate the total PID error and return throttle.
+  */
+  double GetThrottle();
 };
 
 #endif /* PID_H */
