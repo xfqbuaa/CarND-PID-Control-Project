@@ -17,25 +17,21 @@ void PID::Init(double Kp, double Ki, double Kd) {
   this->Ki = Ki;
   this->Kd = Kd;
   
-  Kp = Kp==0? 0.1:Kp;
-  Ki = Ki==0? 0.1:Ki;
-  Kd = Kd==0? 0.1:Kd;
-  
-  dKp = Kp==0? 0.1:Kp/10.;
-  dKi = Ki==0? 0.1:Ki/10.;
-  dKd = Kd==0? 0.1:Kd/10.;
+  dKp = Kp==0? 0.1:Kp/5.;
+  dKi = Ki==0? 0.001:Ki/5.;
+  dKd = Kd==0? 1:Kd/5.;
 }
 
 void PID::UpdateError(double cte, double speed) {
   d_error = cte - p_error;
   p_error = cte;
-  i_error += cte;
-  n_step++;
+  i_error += cte;  
   if (n_step > n_thres) {
-    //t_error += cte*cte;
-    //t_error += pow(speed-speed_limit, 2);
-    t_error += pow(speed_limit*cte/speed,2);
+    // cost error fuction.  
+    t_error += cte*cte;
+    t_error += pow((speed-speed_limit)/speed_limit, 2);
   }
+  n_step++;
 }
 
 double PID::TotalError() {
@@ -51,10 +47,12 @@ double PID::TotalError() {
 }
 
 double PID::GetThrottle() {
-
+  
+  // twiddle seems no effect to pid_thro hyperparameters optimization and so ignored here. 
+  // through twiddle do not works here, but pid_thro can increase vehcile speed to about 55km/h 
   Twiddle();
 
-  double throttle_position = 1-Kp*fabs(p_error) - Kd*fabs(d_error) - Ki*fabs(i_error);
+  double throttle_position = 1.0-Kp*fabs(p_error) - Kd*fabs(d_error) - Ki*fabs(i_error);
   throttle_position = throttle_position > 1? 1:throttle_position;
   throttle_position = throttle_position <-1? -1:throttle_position;
 
@@ -63,25 +61,30 @@ double PID::GetThrottle() {
 
 void PID::Twiddle() {
   
-  // twiddle Kp 
+  // twiddle
   if (fabs(dKp)+fabs(dKd)+fabs(dKi) > 1e-5 && n_step > n_thres) {
-    // to get the optimized Kp
-    cout << "n:" << n_step << "/   Kp:" << Kp << "/   Kd:"<< Kd << "/   Ki:"<< Ki << "/   dKp:"<< dKp << "/   dKd:"<< dKd << "/   dKi:"<< dKi << "/   t_error:"<< t_error/n_step << "/   best_error:"<< best_error << "/   num_para:" << num_para << endl;
-    
-    if (n_step == n_thres) {
+  //if (n_step > n_thres) {
+
+    if (n_step == n_thres + 1) {
       Kp += dKp;
       is_loop = true;
       return;
     }
     
+    double current_error = t_error / (n_step - n_thres);
+    //double current_error = t_error/n_step;
+
+    // to get the optimized Kp, Ki and Kd
+    cout << "n:" << n_step << "/   Kp:" << Kp << "/   Kd:"<< Kd << "/   Ki:"<< Ki << "/   dKp:"<< dKp << "/   dKd:"<< dKd << "/   dKi:"<< dKi << "/   current_error:"<< current_error << "/   best_error:"<< best_error << "/   num_para:" << num_para << endl;
+
     if(is_loop == true) {
-      if((t_error/n_step) < best_error) {
-        best_error = t_error/n_step;
+      if(current_error < best_error) {
+        best_error = current_error;
         if(num_para == 0) dKp *= 1.1;
         if(num_para == 1) dKd *= 1.1;
         if(num_para == 2) dKi *= 1.1;
 
-        //cout << "111111" << endl;
+        cout << "111111" << endl;
       }else {
         if(num_para == 0) Kp -= 2*dKp;
         if(num_para == 1) Kd -= 2*dKd;
@@ -89,17 +92,17 @@ void PID::Twiddle() {
         is_loop =false;
         num_para++;
         num_para = num_para % 3;
-        //cout << "222222" << endl;
+        cout << "222222" << endl;
         return;
       }
     }else {
-      if((t_error/n_step) < best_error) {
-        best_error = t_error/n_step;
+      if(current_error < best_error) {
+        best_error = current_error;
         if(num_para == 0) dKp *= 1.1;
         if(num_para == 1) dKd *= 1.1;
         if(num_para == 2) dKi *= 1.1;
    
-        //cout << "333333" << endl;   
+        cout << "333333" << endl;   
       }else{
         if(num_para == 0) {
 	  Kp += dKp;
@@ -114,7 +117,7 @@ void PID::Twiddle() {
           dKi *= 0.9;
         }     
         
-        //cout << "444444" << endl;
+        cout << "444444" << endl;
       }  
       is_loop = true;   
     } 
@@ -125,4 +128,5 @@ void PID::Twiddle() {
     num_para = num_para % 3;
   } 
 }
+
 

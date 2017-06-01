@@ -1,3 +1,62 @@
+# PID control project
+
+A proportional–integral–derivative controller (PID controller) is a control loop feedback mechanism (controller) commonly used in industrial control systems.
+In this case the PID controller is used to control a vehicle steering according to cross track error (cte) provided by udacity simulator.
+
+steering = -Kp * CTE - Kd * diff_CTE - Ki * int_CTE
+
+TWIDDLE algorithm is also used here to get the optimized hyperparameters (P, I, D coefficients).
+After steering angle PID controller, a similar PID is applied to control vehicle throttle value and to maximum vehicle speed and keep the vehicle in the drivable portion.
+
+## PID component and effects
+
+Kp is the proportional gain, which produces an output value that is proportional to the current cross track error value. Steering is in proportional to cross track error is a effective solution to control cars while at same time generate oscillation.
+
+Kd is the derivative gain, which multiply the derivative of the process error can  improves settling time and stability of the system to beat oscillation.  
+
+Ki is the integral gain. The integral in a PID controller is the sum of the instantaneous error over time and gives the accumulated offset that should have been corrected previously. The accumulated error is then multiplied by the integral gain (Ki) and added to the controller output. The integral term accelerates the movement of the process towards setpoint and eliminates the residual steady-state error that occurs with a pure proportional controller. However, it can cause oscillation at same time.
+
+More hyperparameters tuning can reference [wikipedia](https://en.wikipedia.org/wiki/PID_controller)
+
+## How to choose PID initial value and TWIDDLE algorithm optimization
+
+Sample hyperparameters in class Kp, Kd, Ki (0.2, 3, 0.004) is used to initialize here,  then the twiddle will calculate the optimized hyperparameters later.  
+
+The cost function is defined and shown below. Target speed here is 100mph while speed difference with target speed is considered in cost functions.
+
+```
+if (n_step > n_thres) {
+    // cost error fuction.  
+    t_error += cte*cte;
+    t_error += pow((speed-speed_limit)/speed_limit, 2);
+  }
+```
+With cte from simulator each step, PID first update all related errors including p_error, d_error and i_error, then use twiddle function to iterate hyperparameters and return steering angle with PID equations mentioned above.
+
+## Throttle PID control
+
+A similar PID is applied here to control throttle value here and initialized as below.
+
+```
+pid_thro.Init(0.1, 0.002, 12);
+```
+Same twiddle to optimize hyperparameters for throttle value.
+Contrary to steering angle PID equations, these following PID equations is used to determine throttle value and return to simulator.
+
+```
+double throttle_position = 1.0-Kp*fabs(p_error) - Kd*fabs(d_error) - Ki*fabs(i_error);
+throttle_position = throttle_position > 1? 1:throttle_position;
+throttle_position = throttle_position <-1? -1:throttle_position;
+```
+
+## Summary
+
+As video shows, the vehicle successfully drive a lap around the track.
+The maximum speed is about 50 mph before bridge.
+Cost function definition is very important in this case while have to ignore n_thres steps.
+Through twiddle can scan and find the optimized hyperparameters to some extend, the initialization is still a key factor to make it works since this case is a real time system.  
+Throttle PID almost is optimized manually. 
+
 # CarND-Controls-PID
 Self-Driving Car Engineer Nanodegree Program
 
@@ -25,7 +84,7 @@ Self-Driving Car Engineer Nanodegree Program
 1. Clone this repo.
 2. Make a build directory: `mkdir build && cd build`
 3. Compile: `cmake .. && make`
-4. Run it: `./pid`. 
+4. Run it: `./pid`.
 
 ## Editor Settings
 

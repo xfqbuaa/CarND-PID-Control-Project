@@ -10,13 +10,13 @@ public:
   double i_error = 0.0;
   double d_error = 0.0;
 
-  double t_error = 0.0; 	// total average error
+  double t_error = 0.0; 	// total error t_error += pow(speed_limit*cte/speed,2);
   double best_error = 1.0e5; 	// best total average error 
-  int n_step = 0; 		// n for iteration 
+  int n_step = 0; 		// n for iteration steps
   
-  int n_thres = 100; 		// n limits to switch Kp, Ki, Kd
+  int n_thres = 50; 		// n limits to start calcuate total error and twiddle
   bool is_loop = true;		// flag to show whether the first loop in twiddle
-  int num_para = 0;     	// to switch from Kp, Kd and Ki
+  int num_para = 0;     	// flag to switch from Kp, Kd and Ki
   int speed_limit = 100;        // speed limit 
 
   /*
@@ -26,9 +26,9 @@ public:
   double Ki;
   double Kd;
 
-  double dKp;
-  double dKi;
-  double dKd;
+  double dKp;			// variable for Kp
+  double dKi;			// varialbe for Ki
+  double dKd;			// variable for Kd
 
   /*
   * Constructor
@@ -51,16 +51,16 @@ public:
   void UpdateError(double cte, double speed);
 
   /*
-  * Calculate the total PID error and return steering angle.
+  * Calculate PID and return steering angle.
   */
   double TotalError();
 
   /*
-  * Twiddle.
+  * Twiddle to get optimized parameters.
   */
   void Twiddle();
  /*
-  * Calculate the total PID error and return throttle.
+  * Calculate PID and return throttle.
   */
   double GetThrottle();
 };
